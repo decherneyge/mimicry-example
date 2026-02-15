@@ -4,8 +4,7 @@ This project simulates Batesian mimicry, where harmless species evolve to imitat
 
 ## Project Structure
 
-- **mimicry.html**: Contains the main content of the Batesian Mimicry Simulation, including HTML structure, CSS styles, and JavaScript for functionality.
-- **index.html**: Serves as the entry point for the GitHub Pages site, typically referencing `mimicry.html` or serving as a landing page.
+- **index.html**: Contains the Batesian Mimicry Simulation (HTML, CSS, and JavaScript). This is also the GitHub Pages entry point.
 - **.github/workflows/pages.yml**: GitHub Actions workflow configuration that automates the deployment of the project to GitHub Pages.
 - **README.md**: Documentation for the project, including setup instructions, usage, and other relevant information.
 
@@ -21,7 +20,7 @@ This project simulates Batesian mimicry, where harmless species evolve to imitat
    cd mimicry-pages
    ```
 
-3. Open `mimicry.html` in a web browser to view the simulation.
+3. Open `index.html` in a web browser to view the simulation.
 
 ## Usage
 

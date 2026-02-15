@@ -32,8 +32,8 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      # This repo is static HTML (index.html + mimicry.html) at the repository root.
-      # Upload the root as the Pages artifact.
+  # This repo is a static site served from repository root (index.html).
+  # Upload the root as the Pages artifact.
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
