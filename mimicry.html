@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batesian Mimicry Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 800px 1fr;
+            gap: 20px;
+        }
+        
+        #canvas {
+            border: 2px solid #333;
+            background-color: #C7F2C8;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+        
+        .slider-value {
+            display: inline-block;
+            margin-left: 10px;
+            color: #666;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .stats h3 {
+            margin-top: 0;
+        }
+        
+        .stat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-item {
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+        }
+        
+        .monarch { color: #cc0000; }
+        .viceroy { color: #0000cc; }
+        
+        #chart {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ccc;
+            background-color: white;
+            margin-top: 20px;
+        }
+        
+        .info {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Batesian Mimicry Simulation</h1>
+    
+    <div class="container">
+        <div>
+            <canvas id="canvas" width="800" height="800"></canvas>
+            <canvas id="chart"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button id="setupBtn">Setup</button>
+                <button id="goBtn">Go</button>
+                <button id="stopBtn" disabled>Stop</button>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    Mutation Rate: <span class="slider-value" id="mutationValue">5%</span>
+                </label>
+                <input type="range" id="mutationRate" min="0" max="100" value="5">
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    Memory Duration (ticks): <span class="slider-value" id="memoryDurationValue">30</span>
+                </label>
+                <input type="range" id="memoryDuration" min="0" max="100" value="30">
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    Memory Size: <span class="slider-value" id="memorySizeValue">3</span>
+                </label>
+                <input type="range" id="memorySize" min="1" max="10" value="3">
+            </div>
+            
+            <div class="stats">
+                <h3>Statistics</h3>
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <strong class="monarch">Monarchs:</strong> <span id="monarchCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong class="viceroy">Viceroys:</strong> <span id="viceroyCount">0</span>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <strong class="monarch">Monarch Avg Color:</strong> <span id="monarchAvg">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong class="viceroy">Viceroy Avg Color:</strong> <span id="viceroyAvg">0</span>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <strong>Birds:</strong> <span id="birdCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Ticks:</strong> <span id="tickCount">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info">
+                <h3>About This Model</h3>
+                <p><strong>Legend:</strong></p>
+                <ul>
+                    <li><span class="monarch">x</span> = Monarchs (yucky to birds)</li>
+                    <li><span class="viceroy">o</span> = Viceroys (harmless mimics)</li>
+                    <li>▲ = Birds (predators)</li>
+                </ul>
+                <p><strong>What to Watch:</strong></p>
+                <p>Initially, birds eat both species equally. As they learn red is yucky (from eating monarchs), viceroys that mutate to red gain protection. Over time, both species converge to red coloration through natural selection.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const chartCanvas = document.getElementById('chart');
+        const chartCtx = chartCanvas.getContext('2d');
+        chartCanvas.width = canvas.width;
+        
+        // Simulation state
+        let monarchs = [];
+        let viceroys = [];
+        let birds = [];
+        let running = false;
+        let ticks = 0;
+        let animationId = null;
+        
+        // Chart data
+        let chartData = {
+            monarchAvg: [],
+            viceroyAvg: []
+        };
+        const maxChartPoints = 200;
+        
+        // Constants
+        const WORLD_SIZE = 800;
+        const CARRYING_CAPACITY = 225;
+        const REPRODUCTION_CHANCE = 0.04;
+        const INITIAL_MONARCHS = 450;
+        const INITIAL_VICEROYS = 450;
+        const INITIAL_BIRDS = 75;
+        
+        // Classes
+        class Butterfly {
+            constructor(x, y, color, isMonarch) {
+                this.x = x;
+                this.y = y;
+                this.color = color; // 15 = red, 105 = blue
+                this.isMonarch = isMonarch;
+                this.speed = 2;
+            }
+            
+            move() {
+                this.x += (Math.random() - 0.5) * this.speed * 2;
+                this.y += (Math.random() - 0.5) * this.speed * 2;
+                
+                // Wrap around edges
+                if (this.x < 0) this.x = WORLD_SIZE;
+                if (this.x > WORLD_SIZE) this.x = 0;
+                if (this.y < 0) this.y = WORLD_SIZE;
+                if (this.y > WORLD_SIZE) this.y = 0;
+            }
+            
+            draw() {
+                const hue = this.color * 2.4; // Map 0-105 to 0-252 for color spectrum
+                ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+                ctx.font = '14px Arial';
+                ctx.fillText(this.isMonarch ? 'x' : 'o', this.x, this.y);
+            }
+        }
+        
+        class Bird {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.speed = 3;
+                this.memories = []; // Array of {color, timestamp}
+            }
+            
+            move() {
+                this.x += (Math.random() - 0.5) * this.speed * 2;
+                this.y += (Math.random() - 0.5) * this.speed * 2;
+                
+                // Wrap around edges
+                if (this.x < 0) this.x = WORLD_SIZE;
+                if (this.x > WORLD_SIZE) this.x = 0;
+                if (this.y < 0) this.y = WORLD_SIZE;
+                if (this.y > WORLD_SIZE) this.y = 0;
+            }
+            
+            addMemory(color) {
+                const memorySize = parseInt(document.getElementById('memorySize').value);
+                this.memories.push({ color, timestamp: ticks });
+                if (this.memories.length > memorySize) {
+                    this.memories.shift(); // Forget oldest memory
+                }
+            }
+            
+            forgetOld() {
+                const memoryDuration = parseInt(document.getElementById('memoryDuration').value);
+                this.memories = this.memories.filter(m => ticks - m.timestamp < memoryDuration);
+            }
+            
+            hasMemory(color) {
+                return this.memories.some(m => Math.abs(m.color - color) < 10);
+            }
+            
+            draw() {
+                ctx.fillStyle = '#000';
+                ctx.font = '16px Arial';
+                ctx.fillText('▲', this.x, this.y);
+            }
+        }
+        
+        // Helper functions
+        function randomPosition() {
+            return {
+                x: Math.random() * WORLD_SIZE,
+                y: Math.random() * WORLD_SIZE
+            };
+        }
+        
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+        
+        function setup() {
+            monarchs = [];
+            viceroys = [];
+            birds = [];
+            ticks = 0;
+            chartData = { monarchAvg: [], viceroyAvg: [] };
+            
+            // Create monarchs (red, color = 15)
+            for (let i = 0; i < INITIAL_MONARCHS; i++) {
+                const pos = randomPosition();
+                monarchs.push(new Butterfly(pos.x, pos.y, 15, true));
+            }
+            
+            // Create viceroys (blue, color = 105)
+            for (let i = 0; i < INITIAL_VICEROYS; i++) {
+                const pos = randomPosition();
+                viceroys.push(new Butterfly(pos.x, pos.y, 105, false));
+            }
+            
+            // Create birds
+            for (let i = 0; i < INITIAL_BIRDS; i++) {
+                const pos = randomPosition();
+                birds.push(new Bird(pos.x, pos.y));
+            }
+            
+            updateStats();
+            draw();
+        }
+        
+        function reproduce(butterfly, population) {
+            // Test 1: Carrying capacity
+            if (Math.random() > (CARRYING_CAPACITY - population.length) / CARRYING_CAPACITY) {
+                return;
+            }
+            
+            // Test 2: Random reproduction chance
+            if (Math.random() > REPRODUCTION_CHANCE) {
+                return;
+            }
+            
+            // Create offspring
+            const mutationRate = parseInt(document.getElementById('mutationRate').value) / 100;
+            let color = butterfly.color;
+            
+            if (Math.random() < mutationRate) {
+                // Mutant: random color ending in 5 (15, 25, 35, 45, 55, 65, 75, 85, 95, 105)
+                color = Math.floor(Math.random() * 10) * 10 + 15;
+            }
+            
+            population.push(new Butterfly(
+                butterfly.x + (Math.random() - 0.5) * 10,
+                butterfly.y + (Math.random() - 0.5) * 10,
+                color,
+                butterfly.isMonarch
+            ));
+        }
+        
+        function step() {
+            ticks++;
+            
+            // Move all entities
+            monarchs.forEach(m => m.move());
+            viceroys.forEach(v => v.move());
+            birds.forEach(b => {
+                b.move();
+                b.forgetOld();
+            });
+            
+            // Birds hunt butterflies
+            birds.forEach(bird => {
+                // Check monarchs
+                for (let i = monarchs.length - 1; i >= 0; i--) {
+                    const monarch = monarchs[i];
+                    if (distance(bird.x, bird.y, monarch.x, monarch.y) < 20) {
+                        if (!bird.hasMemory(monarch.color)) {
+                            // Eat the monarch and learn it's yucky
+                            bird.addMemory(monarch.color);
+                            monarchs.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+                
+                // Check viceroys
+                for (let i = viceroys.length - 1; i >= 0; i--) {
+                    const viceroy = viceroys[i];
+                    if (distance(bird.x, bird.y, viceroy.x, viceroy.y) < 20) {
+                        if (!bird.hasMemory(viceroy.color)) {
+                            // Eat the viceroy (it's not actually yucky, but bird doesn't know)
+                            viceroys.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            // Reproduction
+            const monarchSnapshot = [...monarchs];
+            const viceroySnapshot = [...viceroys];
+            
+            monarchSnapshot.forEach(m => reproduce(m, monarchs));
+            viceroySnapshot.forEach(v => reproduce(v, viceroys));
+            
+            // Update display
+            updateStats();
+            draw();
+            
+            if (running) {
+                animationId = requestAnimationFrame(step);
+            }
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#C7F2C8';
+            ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+            
+            // Draw all entities
+            monarchs.forEach(m => m.draw());
+            viceroys.forEach(v => v.draw());
+            birds.forEach(b => b.draw());
+            
+            // Update chart
+            drawChart();
+        }
+        
+        function updateStats() {
+            document.getElementById('monarchCount').textContent = monarchs.length;
+            document.getElementById('viceroyCount').textContent = viceroys.length;
+            document.getElementById('birdCount').textContent = birds.length;
+            document.getElementById('tickCount').textContent = ticks;
+            
+            // Calculate averages
+            const monarchAvg = monarchs.length > 0 
+                ? monarchs.reduce((sum, m) => sum + m.color, 0) / monarchs.length 
+                : 0;
+            const viceroyAvg = viceroys.length > 0 
+                ? viceroys.reduce((sum, v) => sum + v.color, 0) / viceroys.length 
+                : 0;
+            
+            document.getElementById('monarchAvg').textContent = monarchAvg.toFixed(1);
+            document.getElementById('viceroyAvg').textContent = viceroyAvg.toFixed(1);
+            
+            // Store for chart
+            chartData.monarchAvg.push(monarchAvg);
+            chartData.viceroyAvg.push(viceroyAvg);
+            
+            // Keep chart data within limits
+            if (chartData.monarchAvg.length > maxChartPoints) {
+                chartData.monarchAvg.shift();
+                chartData.viceroyAvg.shift();
+            }
+        }
+        
+        function drawChart() {
+            const padding = 40;
+            const width = chartCanvas.width - padding * 2;
+            const height = chartCanvas.height - padding * 2;
+            
+            chartCtx.fillStyle = 'white';
+            chartCtx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
+            
+            // Draw axes
+            chartCtx.strokeStyle = '#333';
+            chartCtx.beginPath();
+            chartCtx.moveTo(padding, padding);
+            chartCtx.lineTo(padding, chartCanvas.height - padding);
+            chartCtx.lineTo(chartCanvas.width - padding, chartCanvas.height - padding);
+            chartCtx.stroke();
+            
+            // Labels
+            chartCtx.fillStyle = '#333';
+            chartCtx.font = '12px Arial';
+            chartCtx.fillText('Color', 10, 20);
+            chartCtx.fillText('Time', chartCanvas.width - 40, chartCanvas.height - 10);
+            chartCtx.fillText('105', 10, padding + 5);
+            chartCtx.fillText('15', 10, chartCanvas.height - padding);
+            
+            if (chartData.monarchAvg.length < 2) return;
+            
+            const xScale = width / maxChartPoints;
+            const yScale = height / 90; // Color range is roughly 15-105 = 90
+            
+            // Draw monarch line
+            chartCtx.strokeStyle = '#cc0000';
+            chartCtx.lineWidth = 2;
+            chartCtx.beginPath();
+            chartData.monarchAvg.forEach((val, i) => {
+                const x = padding + i * xScale;
+                const y = chartCanvas.height - padding - (val - 15) * yScale;
+                if (i === 0) {
+                    chartCtx.moveTo(x, y);
+                } else {
+                    chartCtx.lineTo(x, y);
+                }
+            });
+            chartCtx.stroke();
+            
+            // Draw viceroy line
+            chartCtx.strokeStyle = '#0000cc';
+            chartCtx.beginPath();
+            chartData.viceroyAvg.forEach((val, i) => {
+                const x = padding + i * xScale;
+                const y = chartCanvas.height - padding - (val - 15) * yScale;
+                if (i === 0) {
+                    chartCtx.moveTo(x, y);
+                } else {
+                    chartCtx.lineTo(x, y);
+                }
+            });
+            chartCtx.stroke();
+        }
+        
+        // Event handlers
+        document.getElementById('setupBtn').addEventListener('click', () => {
+            if (running) {
+                running = false;
+                cancelAnimationFrame(animationId);
+            }
+            setup();
+            document.getElementById('goBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        });
+        
+        document.getElementById('goBtn').addEventListener('click', () => {
+            running = true;
+            document.getElementById('goBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            step();
+        });
+        
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            running = false;
+            cancelAnimationFrame(animationId);
+            document.getElementById('goBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        });
+        
+        // Slider updates
+        document.getElementById('mutationRate').addEventListener('input', (e) => {
+            document.getElementById('mutationValue').textContent = e.target.value + '%';
+        });
+        
+        document.getElementById('memoryDuration').addEventListener('input', (e) => {
+            document.getElementById('memoryDurationValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('memorySize').addEventListener('input', (e) => {
+            document.getElementById('memorySizeValue').textContent = e.target.value;
+        });
+        
+        // Initialize
+        setup();
+    </script>
+</body>
+</html>
